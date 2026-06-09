@@ -35,9 +35,7 @@ btnLogout.addEventListener('click', async () => {
 });
 
 // 3. PERBAIKAN TOMBOL HIJAU: Arahkan ke Edge Function Supabase
-// PERBAIKAN TOMBOL HIJAU: Menambahkan ID User dan Scope Email
 btnTambahStorage.addEventListener('click', async () => {
-    // Ambil ID User yang sedang login
     const { data: { session } } = await supabaseClient.auth.getSession();
     
     if (!session) {
@@ -45,22 +43,25 @@ btnTambahStorage.addEventListener('click', async () => {
         return;
     }
 
-    const userId = session.user.id; // Ini ID Supabase Anda
-    const GOOGLE_CLIENT_ID = "800639483878-9nm9324qto7cf1d4ceqockodcl9h30af.apps.googleusercontent.com"; 
+    const userId = session.user.id;
+    
+    // PASTIKAN ANDA MENGISI 2 BARIS DI BAWAH INI
+    const GOOGLE_CLIENT_ID = "800639483878-9nm9324qto7cf1d4ceqockodcl9h30af.apps.googleusercontent.com
+"; 
     const REDIRECT_URI = "https://dmagkklzsjfmuposfulb.supabase.co/functions/v1/google-auth-callback";
     
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-        `client_id=${GOOGLE_CLIENT_ID}` +
-        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
-        `&response_type=code` +
-        `&scope=https://www.googleapis.com/auth/drive.file%20email` + // Tambahan '%20email' agar bisa baca alamat email Google
-        `&access_type=offline` +
-        `&state=${userId}` + // KITA TITIPKAN ID USER DI SINI (Parameter state)
-        `&prompt=consent`;
+    // PEMBUATAN URL (Pastikan ada tulisan access_type=offline dan prompt=consent)
+    const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth?" +
+        "client_id=" + GOOGLE_CLIENT_ID +
+        "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
+        "&response_type=code" +
+        "&scope=https://www.googleapis.com/auth/drive.file%20email" +
+        "&access_type=offline" + 
+        "&state=" + userId +
+        "&prompt=consent";
     
     window.location.href = googleAuthUrl; 
 });
-
 // Logika Upload File
 inputUpload.addEventListener('change', async (e) => {
     const file = e.target.files[0];
