@@ -61,23 +61,57 @@ btnTambahStorage.addEventListener('click', async () => {
         alert("Gagal memproses tombol. Cek console untuk detailnya.");
     }
 });
-// Logika Upload File
+// Logika Upload File SUNGGUHAN
 inputUpload.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    alert(`Memproses file: ${file.name} (${(file.size / 1024).toFixed(1)} KB).\nSistem akan mencari Bucket yang paling kosong, lalu mengirimkannya lewat Serverless Edge Function.`);
+    // 1. Cek User ID
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
+        alert("Silakan login terlebih dahulu!");
+        return;
+    }
+
+    // 2. Beri tahu user bahwa proses sedang berjalan
+    alert(`Mulai mengunggah: ${file.name}...\n\nHarap tunggu sebentar, file sedang dikirim ke Google Drive.`);
+
+    // 3. Bungkus file-nya ke dalam paket Data
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', session.user.id);
+
+    try {
+        // GANTI URL DI BAWAH INI DENGAN URL EDGE FUNCTION "upload-file" ANDA!
+        const URL_UPLOAD = "https://dmagkklzsjfmuposfulb.supabase.co/functions/v1/upload-file";
+        
+        // 4. Kirim ke Edge Function
+        const response = await fetch(URL_UPLOAD, {
+            method: 'POST',
+            body: formData 
+            // Jangan tambah header Content-Type secara manual, biarkan browser yang atur untuk FormData
+        });
+
+        const result = await response.json();
+
+        // 5. Cek Hasilnya
+        if (response.ok && result.success) {
+            alert("✅ Berhasil! File Anda sudah tersimpan aman di Google Drive.");
+            
+            // Refresh ulang data ringkasan di dashboard
+            loadDashboardData(); 
+        } else {
+            alert("❌ Gagal unggah: " + result.error);
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert("❌ Terjadi kesalahan jaringan, tidak bisa menghubungi server.");
+    } finally {
+        // Reset input file agar bisa pilih file yang sama lagi jika error
+        e.target.value = '';
+    }
 });
-
-function showLogin() {
-    loginScreen.classList.remove('hidden');
-    dashboardScreen.classList.add('hidden');
-}
-
-function showDashboard() {
-    loginScreen.classList.add('hidden');
-    dashboardScreen.classList.remove('hidden');
-}
 
 // Mengambil Data dari Supabase
 async function loadDashboardData() {
