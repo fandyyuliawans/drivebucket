@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyDrive All - Cloud Storage Multi-Account</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+
+    <div id="login-screen" class="hidden min-h-screen flex items-center justify-center bg-blue-600">
+        <div class="bg-white p-8 rounded-xl shadow-lg max-w-sm w-full text-center">
+            <h1 class="text-2xl font-bold text-blue-600 mb-4">MyDrive All</h1>
+            <p class="text-gray-500 mb-6">Gabungkan semua akun Google Drive Anda dalam satu tempat.</p>
+            <button id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                Masuk dengan Supabase Auth
+            </button>
+        </div>
+    </div>
+
+    <div id="dashboard-screen" class="min-h-screen flex flex-col md:flex-row">
+        <aside class="w-full md:w-64 bg-white border-r border-gray-200 p-6 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center space-x-2 mb-8">
+                    <div class="bg-blue-600 text-white p-2 rounded-lg font-bold text-xl">☁️</div>
+                    <span class="text-xl font-bold text-blue-600">MyDrive All</span>
+                </div>
+                <nav class="space-y-2">
+                    <button class="w-full text-left bg-blue-50 text-blue-600 font-medium py-2.5 px-4 rounded-lg flex items-center space-x-3">
+                        <span>🏠</span> <span>My Drive</span>
+                    </button>
+                    <button onclick="switchTab('kelola')" class="w-full text-left text-gray-600 hover:bg-gray-50 py-2.5 px-4 rounded-lg flex items-center space-x-3">
+                        <span>⚙️</span> <span>Kelola Drive</span>
+                    </button>
+                </nav>
+            </div>
+            <button id="btn-logout" class="text-left text-red-500 hover:bg-red-50 py-2.5 px-4 rounded-lg mt-auto flex items-center space-x-3">
+                <span>🚪</span> <span>Keluar</span>
+            </button>
+        </aside>
+
+        <main class="flex-1 p-6 md:p-10">
+            <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                    <span class="text-gray-400 text-sm block mb-1">Total File</span>
+                    <span id="stat-total-file" class="text-2xl font-bold text-gray-800">0</span>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                    <span class="text-gray-400 text-sm block mb-1">Total Ukuran</span>
+                    <span id="stat-total-size" class="text-2xl font-bold text-gray-800">0 KB</span>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                    <span class="text-gray-400 text-sm block mb-1">Drive Aktif</span>
+                    <span id="stat-drive-aktif" class="text-2xl font-bold text-gray-800">0</span>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm bg-blue-50 border-blue-100">
+                    <span class="text-blue-500 text-sm block mb-1">Storage Bebas</span>
+                    <span id="stat-storage-bebas" class="text-2xl font-bold text-blue-600">0 GB</span>
+                </div>
+            </section>
+
+            <div class="flex space-x-4 mb-8">
+                <label class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-sm cursor-pointer transition">
+                    ➕ Upload File Baru
+                    <input type="file" id="input-upload" class="hidden">
+                </label>
+                <button id="btn-tambah-storage" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-sm transition">
+                    🚀 + Tambah Storage (Google Account)
+                </button>
+            </div>
+
+            <section class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                <h2 class="text-lg font-bold text-gray-800 mb-4">FILE TERBARU</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-gray-200 text-gray-400 text-sm">
+                                <th class="pb-3 font-medium">Nama File</th>
+                                <th class="pb-3 font-medium">Ukuran</th>
+                                <th class="pb-3 font-medium">Bucket Storage</th>
+                                <th class="pb-3 font-medium text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-files-body">
+                            </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
