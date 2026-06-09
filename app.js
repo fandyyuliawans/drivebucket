@@ -35,12 +35,25 @@ btnLogout.addEventListener('click', async () => {
 });
 
 // 3. PERBAIKAN TOMBOL HIJAU: Arahkan ke Edge Function Supabase
+// PERBAIKAN TOMBOL HIJAU: Arahkan ke Halaman Izin Google
 btnTambahStorage.addEventListener('click', () => {
-    // GANTI URL DI BAWAH INI dengan URL Edge Function Anda yang asli!
-    const edgeFunctionUrl = "https://dmagkklzsjfmuposfulb.supabase.co/functions/v1/google-auth-callback";
+    // 1. Masukkan Client ID Google Anda (didapat dari Google Cloud Console)
+    const GOOGLE_CLIENT_ID = "800639483878-9nm9324qto7cf1d4ceqockodcl9h30af.apps.googleusercontent.com"; 
     
-    // Ini akan mengarahkan halaman web ke proses login Google
-    window.location.href = edgeFunctionUrl; 
+    // 2. Masukkan URL Edge Function Anda yang asli (sebagai tempat kembalian dari Google)
+    const REDIRECT_URI = "https://dmagkklzsjfmuposfulb.supabase.co/functions/v1/google-auth-callback";
+    
+    // 3. Kita rangkai URL menuju halaman login Google
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+        `client_id=${GOOGLE_CLIENT_ID}` +
+        `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+        `&response_type=code` +
+        `&scope=https://www.googleapis.com/auth/drive.file` + // Izin akses file Drive
+        `&access_type=offline` + // Wajib agar Google memberikan refresh_token
+        `&prompt=consent`;       // Wajib agar selalu muncul layar persetujuan
+    
+    // Arahkan browser ke halaman Google
+    window.location.href = googleAuthUrl; 
 });
 
 // Logika Upload File
