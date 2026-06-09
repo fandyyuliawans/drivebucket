@@ -13,16 +13,29 @@ const btnLogout = document.getElementById('btn-logout');
 const btnTambahStorage = document.getElementById('btn-tambah-storage');
 const inputUpload = document.getElementById('input-upload');
 
-// Jalankan pengecekan auth saat halaman dibuka
-window.addEventListener('DOMContentLoaded', async () => {
-    const { data: { session } } = await supabaseClient.auth.getSession();
+// GANTI DENGAN KODE RADAR INI:
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    // Fungsi ini akan otomatis dipanggil oleh Supabase setiap kali status login jelas
     if (session) {
         showDashboard();
-        loadDashboardData();
+        // Beri jeda sepersekian detik untuk memastikan koneksi database sudah mengunci token Anda
+        setTimeout(() => {
+            loadDashboardData();
+        }, 100); 
     } else {
         showLogin();
     }
 });
+
+async function loadDashboardData() {
+    // Tambahkan variabel 'error' agar jika database menolak, alasannya tercatat
+    const { data: drives, error: errDrives } = await supabaseClient.from('drives').select('*');
+    const { data: files, error: errFiles } = await supabaseClient.from('files').select('*, drives(bucket_name)');
+
+    if (errDrives) console.error("Gagal menarik data Drive:", errDrives);
+    if (errFiles) console.error("Gagal menarik data File:", errFiles);
+
+    // ... (biarkan sisa kode di bawahnya sama persis seperti sebelumnya)
 
 // Event Listeners
 btnLogin.addEventListener('click', () => {
