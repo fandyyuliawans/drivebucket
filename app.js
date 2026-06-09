@@ -35,24 +35,29 @@ btnLogout.addEventListener('click', async () => {
 });
 
 // 3. PERBAIKAN TOMBOL HIJAU: Arahkan ke Edge Function Supabase
-// PERBAIKAN TOMBOL HIJAU: Arahkan ke Halaman Izin Google
-btnTambahStorage.addEventListener('click', () => {
-    // 1. Masukkan Client ID Google Anda (didapat dari Google Cloud Console)
-    const GOOGLE_CLIENT_ID = "800639483878-9nm9324qto7cf1d4ceqockodcl9h30af.apps.googleusercontent.com"; 
+// PERBAIKAN TOMBOL HIJAU: Menambahkan ID User dan Scope Email
+btnTambahStorage.addEventListener('click', async () => {
+    // Ambil ID User yang sedang login
+    const { data: { session } } = await supabaseClient.auth.getSession();
     
-    // 2. Masukkan URL Edge Function Anda yang asli (sebagai tempat kembalian dari Google)
+    if (!session) {
+        alert("Sesi habis, silakan login ulang!");
+        return;
+    }
+
+    const userId = session.user.id; // Ini ID Supabase Anda
+    const GOOGLE_CLIENT_ID = "800639483878-9nm9324qto7cf1d4ceqockodcl9h30af.apps.googleusercontent.com"; 
     const REDIRECT_URI = "https://dmagkklzsjfmuposfulb.supabase.co/functions/v1/google-auth-callback";
     
-    // 3. Kita rangkai URL menuju halaman login Google
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${GOOGLE_CLIENT_ID}` +
         `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
         `&response_type=code` +
-        `&scope=https://www.googleapis.com/auth/drive.file` + // Izin akses file Drive
-        `&access_type=offline` + // Wajib agar Google memberikan refresh_token
-        `&prompt=consent`;       // Wajib agar selalu muncul layar persetujuan
+        `&scope=https://www.googleapis.com/auth/drive.file%20email` + // Tambahan '%20email' agar bisa baca alamat email Google
+        `&access_type=offline` +
+        `&state=${userId}` + // KITA TITIPKAN ID USER DI SINI (Parameter state)
+        `&prompt=consent`;
     
-    // Arahkan browser ke halaman Google
     window.location.href = googleAuthUrl; 
 });
 
