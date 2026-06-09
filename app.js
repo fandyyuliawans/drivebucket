@@ -1,11 +1,15 @@
-// 1. Masukkan URL dan Key Anda di sini
-const SUPABASE_URL = "https://dmagkklzsjfmuposfulb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtYWdra2x6c2pmbXVwb3NmdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MTYxNjYsImV4cCI6MjA5NjM5MjE2Nn0.HtdnSjQot3biVrn7OeX_dUOG70OFLHpjOuixsc9ZDlE";
+// ==========================================
+// 1. INISIALISASI SUPABASE
+// ==========================================
+// PENTING: Ganti dengan URL dan Anon Key proyek Supabase Anda sendiri!
+const SUPABASE_URL = "https://dmagkklzsjfmuposfulb.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtYWdra2x6c2pmbXVwb3NmdWxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MTYxNjYsImV4cCI6MjA5NjM5MjE2Nn0.HtdnSjQot3biVrn7OeX_dUOG70OFLHpjOuixsc9ZDlE"; 
 
-// 2. PERBAIKAN ERROR: Ubah nama variabel menjadi supabaseClient
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Elemen DOM
+// ==========================================
+// 2. ELEMEN DOM
+// ==========================================
 const loginScreen = document.getElementById('login-screen');
 const dashboardScreen = document.getElementById('dashboard-screen');
 const btnLogin = document.getElementById('btn-login');
@@ -13,12 +17,13 @@ const btnLogout = document.getElementById('btn-logout');
 const btnTambahStorage = document.getElementById('btn-tambah-storage');
 const inputUpload = document.getElementById('input-upload');
 
-// GANTI DENGAN KODE RADAR INI:
+// ==========================================
+// 3. RADAR PEMANTAU LOGIN (Anti Angka 0)
+// ==========================================
 supabaseClient.auth.onAuthStateChange((event, session) => {
-    // Fungsi ini akan otomatis dipanggil oleh Supabase setiap kali status login jelas
     if (session) {
         showDashboard();
-        // Beri jeda sepersekian detik untuk memastikan koneksi database sudah mengunci token Anda
+        // Beri jeda sepersekian detik untuk memastikan database siap
         setTimeout(() => {
             loadDashboardData();
         }, 100); 
@@ -27,17 +32,9 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
     }
 });
 
-async function loadDashboardData() {
-    // Tambahkan variabel 'error' agar jika database menolak, alasannya tercatat
-    const { data: drives, error: errDrives } = await supabaseClient.from('drives').select('*');
-    const { data: files, error: errFiles } = await supabaseClient.from('files').select('*, drives(bucket_name)');
-
-    if (errDrives) console.error("Gagal menarik data Drive:", errDrives);
-    if (errFiles) console.error("Gagal menarik data File:", errFiles);
-
-    // ... (biarkan sisa kode di bawahnya sama persis seperti sebelumnya)
-
-// Event Listeners
+// ==========================================
+// 4. EVENT LISTENER LOGIN / LOGOUT
+// ==========================================
 btnLogin.addEventListener('click', () => {
     supabaseClient.auth.signInWithOAuth({ provider: 'google' });
 });
@@ -47,7 +44,9 @@ btnLogout.addEventListener('click', async () => {
     showLogin();
 });
 
-// PERBAIKAN TOMBOL HIJAU: Menggunakan satu baris URL yang aman dari error
+// ==========================================
+// 5. TOMBOL HIJAU: TAMBAH STORAGE
+// ==========================================
 btnTambahStorage.addEventListener('click', async () => {
     try {
         const { data: { session } } = await supabaseClient.auth.getSession();
@@ -59,14 +58,12 @@ btnTambahStorage.addEventListener('click', async () => {
 
         const userId = session.user.id;
         
-        // 1. GANTI 2 BARIS INI DENGAN KODE MILIK ANDA
+        // PENTING: Ganti 2 baris ini dengan milik Anda!
         const GOOGLE_CLIENT_ID = "800639483878-9nm9324qto7cf1d4ceqockodcl9h30af.apps.googleusercontent.com"; 
         const REDIRECT_URI = "https://dmagkklzsjfmuposfulb.supabase.co/functions/v1/google-auth-callback";
         
-        // 2. Pembuatan URL (Sekarang dalam satu baris menggunakan backtick agar tidak error)
         const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=https://www.googleapis.com/auth/drive.file%20email&access_type=offline&state=${userId}&prompt=consent`;
         
-        // 3. Arahkan browser
         window.location.href = googleAuthUrl; 
 
     } catch (error) {
@@ -74,44 +71,39 @@ btnTambahStorage.addEventListener('click', async () => {
         alert("Gagal memproses tombol. Cek console untuk detailnya.");
     }
 });
-// Logika Upload File SUNGGUHAN
+
+// ==========================================
+// 6. LOGIKA UPLOAD FILE SUNGGUHAN
+// ==========================================
 inputUpload.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 1. Cek User ID
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) {
         alert("Silakan login terlebih dahulu!");
         return;
     }
 
-    // 2. Beri tahu user bahwa proses sedang berjalan
     alert(`Mulai mengunggah: ${file.name}...\n\nHarap tunggu sebentar, file sedang dikirim ke Google Drive.`);
 
-    // 3. Bungkus file-nya ke dalam paket Data
     const formData = new FormData();
     formData.append('file', file);
     formData.append('userId', session.user.id);
 
     try {
-        // GANTI URL DI BAWAH INI DENGAN URL EDGE FUNCTION "upload-file" ANDA!
+        // PENTING: Ganti URL di bawah ini dengan URL Edge Function Anda!
         const URL_UPLOAD = "https://dmagkklzsjfmuposfulb.supabase.co/functions/v1/upload-file";
         
-        // 4. Kirim ke Edge Function
         const response = await fetch(URL_UPLOAD, {
             method: 'POST',
             body: formData 
-            // Jangan tambah header Content-Type secara manual, biarkan browser yang atur untuk FormData
         });
 
         const result = await response.json();
 
-        // 5. Cek Hasilnya
         if (response.ok && result.success) {
             alert("✅ Berhasil! File Anda sudah tersimpan aman di Google Drive.");
-            
-            // Refresh ulang data ringkasan di dashboard
             loadDashboardData(); 
         } else {
             alert("❌ Gagal unggah: " + result.error);
@@ -121,16 +113,32 @@ inputUpload.addEventListener('change', async (e) => {
         console.error(error);
         alert("❌ Terjadi kesalahan jaringan, tidak bisa menghubungi server.");
     } finally {
-        // Reset input file agar bisa pilih file yang sama lagi jika error
         e.target.value = '';
     }
 });
 
-// Mengambil Data dari Supabase
+// ==========================================
+// 7. FUNGSI TAMPILAN UI
+// ==========================================
+function showLogin() {
+    loginScreen.classList.remove('hidden');
+    dashboardScreen.classList.add('hidden');
+}
+
+function showDashboard() {
+    loginScreen.classList.add('hidden');
+    dashboardScreen.classList.remove('hidden');
+}
+
+// ==========================================
+// 8. FUNGSI TARIK DATA DASHBOARD
+// ==========================================
 async function loadDashboardData() {
-    // Perhatikan: sekarang kita menggunakan supabaseClient
-    const { data: drives } = await supabaseClient.from('drives').select('*');
-    const { data: files } = await supabaseClient.from('files').select('*, drives(bucket_name)');
+    const { data: drives, error: errDrives } = await supabaseClient.from('drives').select('*');
+    const { data: files, error: errFiles } = await supabaseClient.from('files').select('*, drives(bucket_name)');
+
+    if (errDrives) console.error("Gagal menarik data Drive:", errDrives);
+    if (errFiles) console.error("Gagal menarik data File:", errFiles);
 
     if (drives) {
         document.getElementById('stat-drive-aktif').innerText = drives.filter(d => d.status === 'Aktif').length;
