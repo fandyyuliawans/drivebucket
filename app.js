@@ -72,48 +72,69 @@ btnTambahStorage.addEventListener('click', async () => {
     }
 });
 
-// ==========================================
-// 6. LOGIKA UPLOAD FILE SUNGGUHAN
+// 6. LOGIKA UPLOAD FILE BESAR (DIRECT UPLOAD)
 // ==========================================
 inputUpload.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session) {
-        alert("Silakan login terlebih dahulu!");
-        return;
-    }
+    if (!session) { alert("Silakan login terlebih dahulu!"); return; }
 
-    alert(`Mulai mengunggah: ${file.name}...\n\nHarap tunggu sebentar, file sedang dikirim ke Google Drive.`);
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('userId', session.user.id);
+    // Ambil elemen layar loading
+    const loadingOverlay = document.getElementById('loading-overlay');
+    
+    // TAMPILKAN LAYAR LOADING (Hapus alert yang lama)
+    loadingOverlay.classList.remove('hidden');
 
     try {
-        // PENTING: Ganti URL di bawah ini dengan URL Edge Function Anda!
-        const URL_UPLOAD = "https://dmagkklzsjfmuposfulb.supabase.co/functions/v1/upload-file";
+        const URL_UPLOAD_INIT = "https://dmagkklzsjfmuposfulb.supabase.co/functions/v1/upload-file";
         
-        const response = await fetch(URL_UPLOAD, {
+        const initResponse = await fetch(URL_UPLOAD_INIT, {
             method: 'POST',
-            body: formData 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                userId: session.user.id, 
+                fileName: file.name, 
+                fileSize: file.size, 
+                mimeType: file.type 
+            })
         });
 
-        const result = await response.json();
+        const initResult = await initResponse.json();
+        if (!initResponse.ok || !initResult.success) throw new Error(initResult.error || "Gagal meminta izin upload.");
 
-        if (response.ok && result.success) {
-            alert("✅ Berhasil! File Anda sudah tersimpan aman di Google Drive.");
-            loadDashboardData(); 
-        } else {
-            alert("❌ Gagal unggah: " + result.error);
-        }
+        const uploadResponse = await fetch(initResult.uploadUrl, {
+            method: 'PUT',
+            body: file 
+        });
+
+        if (!uploadResponse.ok) throw new Error("Google Drive menolak file tersebut.");
+        const uploadResult = await uploadResponse.json();
+
+        await supabaseClient.from('files').insert([{
+            user_id: session.user.id, 
+            drive_id: initResult.driveId, 
+            file_name: file.name,
+            google_file_id: uploadResult.id, 
+            size: file.size
+        }]);
+
+        await supabaseClient.from('drives').update({
+            used_storage: initResult.usedStorage + file.size
+        }).eq('id', initResult.driveId);
+
+        // Upload sukses, beri notifikasi singkat
+        alert("✅ Luar Biasa! File berhasil terunggah.");
+        loadDashboardData(); 
 
     } catch (error) {
         console.error(error);
-        alert("❌ Terjadi kesalahan jaringan, tidak bisa menghubungi server.");
+        alert("❌ Terjadi kesalahan: " + error.message);
     } finally {
-        e.target.value = '';
+        // SEMBUNYIKAN KEMBALI LAYAR LOADING APAPUN YANG TERJADI
+        loadingOverlay.classList.add('hidden');
+        e.target.value = ''; 
     }
 });
 
