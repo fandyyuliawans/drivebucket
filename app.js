@@ -170,3 +170,113 @@ async function loadDashboardData() {
         `).join('');
     }
 }
+
+// ==========================================
+// 9. LOGIKA LOGIN ADMIN (Email & Password)
+// ==========================================
+const btnLoginAdmin = document.getElementById('btn-login-admin');
+const inputAdminEmail = document.getElementById('admin-email');
+const inputAdminPassword = document.getElementById('admin-password');
+
+btnLoginAdmin.addEventListener('click', async () => {
+    const email = inputAdminEmail.value;
+    const password = inputAdminPassword.value;
+
+    if (!email || !password) {
+        alert("Harap isi Email dan Password Admin!");
+        return;
+    }
+
+    // Meminta Supabase login menggunakan Email dan Password
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+    });
+
+    if (error) {
+        alert("Login Gagal: Email atau Password salah.");
+    } else {
+        // Jika sukses, Radar OnAuthStateChange di atas akan otomatis mengarahkan ke Dashboard
+        inputAdminEmail.value = '';
+        inputAdminPassword.value = '';
+    }
+});
+
+// ==========================================
+// 10. LOGIKA TAB MENU (My Drive vs Kelola Drive)
+// ==========================================
+const myDriveSection = document.getElementById('my-drive-section');
+const kelolaDriveSection = document.getElementById('kelola-drive-section');
+
+// Fungsi ini dipanggil dari atribut 'onclick' di index.html
+window.switchTab = function(tabName) {
+    if (tabName === 'mydrive') {
+        myDriveSection.classList.remove('hidden');
+        kelolaDriveSection.classList.add('hidden');
+    } else if (tabName === 'kelola') {
+        myDriveSection.classList.add('hidden');
+        kelolaDriveSection.classList.remove('hidden');
+        
+        // Render tampilan kartu drive setiap kali menu ini dibuka
+        renderKelolaDriveUI(); 
+    }
+};
+
+// ==========================================
+// 11. TAMPILAN KARTU KELOLA DRIVE
+// ==========================================
+async function renderKelolaDriveUI() {
+    const { data: drives, error } = await supabaseClient.from('drives').select('*');
+    const gridContainer = document.getElementById('grid-kelola-drives');
+    
+    if (error) {
+        gridContainer.innerHTML = `<p class="text-red-500">Gagal memuat data Drive.</p>`;
+        return;
+    }
+
+    if (!drives || drives.length === 0) {
+        gridContainer.innerHTML = `<p class="text-gray-500">Belum ada Drive yang ditambahkan.</p>`;
+        return;
+    }
+
+    // Menggambar kotak kartu untuk setiap akun Google Drive yang terhubung
+    gridContainer.innerHTML = drives.map(drive => {
+        const totalGB = (drive.total_storage / (1024 ** 3)).toFixed(1);
+        const usedGB = (drive.used_storage / (1024 ** 3)).toFixed(1);
+        const freeGB = ((drive.total_storage - drive.used_storage) / (1024 ** 3)).toFixed(1);
+        
+        // Hitung persentase bar progress
+        const percentUsed = Math.min(100, Math.round((drive.used_storage / drive.total_storage) * 100));
+
+        return `
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-blue-600 text-white p-2 rounded shrink-0">🪣</div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-sm truncate">${drive.bucket_name}</h3>
+                            <p class="text-xs text-gray-500 truncate">${drive.email}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">Aktif</span>
+                </div>
+                <div class="p-5">
+                    <div class="flex justify-between text-xs text-gray-500 mb-2">
+                        <span>${usedGB} GB terpakai</span>
+                        <span>${freeGB} GB bebas</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
+                        <div class="bg-blue-500 h-2 rounded-full" style="width: ${percentUsed}%"></div>
+                    </div>
+                    <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
+                        <span class="text-xs font-medium text-gray-400">Total: ${totalGB} GB</span>
+                        <button class="text-red-500 hover:bg-red-50 px-3 py-1 rounded text-sm transition">
+                            🗑️ Hapus
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
