@@ -195,9 +195,20 @@ window.manageFile = async function(fileId, action) {
     let inputNamaBaru = null;
 
     if (action === 'rename') {
-        const fileSkg = globalFilesData.find(f => f.id === fileId);
-        const namaBaru = prompt("Masukkan nama baru untuk file ini:", fileSkg ? fileSkg.file_name : "");
-        if (!namaBaru || namaBaru.trim() === "" || namaBaru === fileSkg.file_name) return;
+        // PERBAIKAN: Gunakan String() agar tipe datanya (Teks vs Angka) pasti sama
+        const fileSkg = globalFilesData.find(f => String(f.id) === String(fileId));
+        
+        // Mencegah error jika file tiba-tiba tidak ditemukan di memori
+        if (!fileSkg) {
+            alert("File tidak ditemukan di sistem. Silakan refresh halaman.");
+            return;
+        }
+
+        const namaBaru = prompt("Masukkan nama baru untuk file ini:", fileSkg.file_name);
+        
+        // Batalkan jika user klik Cancel, kosong, atau namanya sama persis
+        if (!namaBaru || namaBaru.trim() === "" || namaBaru.trim() === fileSkg.file_name) return;
+        
         inputNamaBaru = namaBaru.trim();
     }
 
@@ -209,7 +220,7 @@ window.manageFile = async function(fileId, action) {
     if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 
     try {
-        // PENTING: Ganti dengan URL Supabase Anda
+        // PENTING: Jangan lupa masukkan URL Supabase Anda lagi di sini!
         const URL_MANAGE = "https://dmagkklzsjfmuposfulb.supabase.co/functions/v1/manage-file";
         
         const response = await fetch(URL_MANAGE, {
