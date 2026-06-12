@@ -246,7 +246,7 @@ window.manageFile = async function(fileId, action) {
 }
 
 // ==========================================
-// 9. KELOLA DRIVE (UI KARTU)
+// 9. KELOLA DRIVE (UI KARTU & SINKRONISASI)
 // ==========================================
 async function renderKelolaDriveUI() {
     const { data: drives } = await supabaseClient.from('drives').select('*');
@@ -262,18 +262,69 @@ async function renderKelolaDriveUI() {
         const percentUsed = Math.min(100, Math.round((drive.used_storage / drive.total_storage) * 100));
 
         return `
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
                 <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-3 truncate">
                         <div class="bg-blue-600 text-white p-2 rounded shrink-0">🪣</div>
-                        <div><h3 class="font-bold text-gray-800 text-sm truncate">${drive.bucket_name}</h3><p class="text-xs text-gray-500 truncate">${drive.email}</p></div>
+                        <div class="truncate">
+                            <h3 class="font-bold text-gray-800 text-sm truncate" title="${drive.bucket_name}">${drive.bucket_name}</h3>
+                            <p class="text-xs text-gray-500 truncate" title="${drive.email}">${drive.email}</p>
+                        </div>
                     </div>
-                    <span class="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">Aktif</span>
+                    <span class="text-xs font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full shrink-0">Aktif</span>
                 </div>
-                <div class="p-5">
+                <div class="p-5 flex-grow">
                     <div class="flex justify-between text-xs text-gray-500 mb-2"><span>${usedGB} GB terpakai</span><span>${freeGB} GB bebas</span></div>
                     <div class="w-full bg-gray-200 rounded-full h-2 mb-4"><div class="bg-blue-500 h-2 rounded-full" style="width: ${percentUsed}%"></div></div>
+                    
+                    <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
+                        <span class="text-xs font-medium text-gray-400">Total: ${totalGB} GB</span>
+                        <div class="space-x-2">
+                            <button onclick="syncDrive('${drive.id}')" class="text-blue-600 hover:bg-blue-50 px-2 py-1 rounded text-sm transition font-medium border border-blue-200">
+                                🔄 Sync
+                            </button>
+                            <button onclick="manageFile('${drive.id}', 'delete_drive')" class="text-red-500 hover:bg-red-50 px-2 py-1 rounded text-sm transition font-medium border border-red-200">
+                                🗑️ Hapus
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>`;
     }).join('');
+}
+
+// FUNGSI KLIK TOMBOL SYNC
+window.syncDrive = async function(driveId) {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) return;
+
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+
+    try {
+        // PENTING: Masukkan URL Edge Function sync-drive Anda di sini
+        const URL_SYNC = "https://dmagkklzsjfmuposfulb.supabase.co/functions/v1/sync-drive";
+        
+        const response = await fetch(URL_SYNC, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: session.user.id, driveId: driveId })
+        });
+
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            alert("✅ Sinkronisasi berhasil! Kapasitas telah disesuaikan dengan Google Drive asli.");
+            
+            // Muat ulang UI agar bar persentase berubah
+            renderKelolaDriveUI(); 
+            loadDashboardData(); // Update juga ringkasan storage bebas di depan
+        } else {
+            alert("❌ Sinkronisasi gagal: " + (result.error || "Kesalahan tidak diketahui."));
+        }
+    } catch (error) {
+        alert("❌ Terjadi kesalahan jaringan saat mencoba sinkronisasi.");
+    } finally {
+        if (loadingOverlay) loadingOverlay.classList.add('hidden');
+    }
 }
