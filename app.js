@@ -152,43 +152,109 @@ function showDashboard() {
 }
 
 // ==========================================
-// 8. FUNGSI TARIK DATA DASHBOARD
+// 8. FUNGSI TARIK DATA & RENDER TABEL (SEARCH/SORT)
 // ==========================================
+let globalFilesData = []; // Variabel penyimpan data file sementara
+
 async function loadDashboardData() {
     const { data: drives, error: errDrives } = await supabaseClient.from('drives').select('*');
-    const { data: files, error: errFiles } = await supabaseClient.from('files').select('*, drives(bucket_name)');
-
-    if (errDrives) console.error("Gagal menarik data Drive:", errDrives);
-    if (errFiles) console.error("Gagal menarik data File:", errFiles);
+    // Tarik data file diurutkan dari yang terbaru sebagai standar
+    const { data: files, error: errFiles } = await supabaseClient.from('files').select('*, drives(bucket_name)').order('created_at', { ascending: false });
 
     if (drives) {
         document.getElementById('stat-drive-aktif').innerText = drives.filter(d => d.status === 'Aktif').length;
-        
         let totalFreeBytes = drives.reduce((acc, d) => acc + (d.total_storage - d.used_storage), 0);
-        let totalFreeGB = (totalFreeBytes / (1024 ** 3)).toFixed(1);
-        document.getElementById('stat-storage-bebas').innerText = `${totalFreeGB} GB`;
+        document.getElementById('stat-storage-bebas').innerText = `${(totalFreeBytes / (1024 ** 3)).toFixed(1)} GB`;
     }
 
     if (files) {
+        globalFilesData = files; // Simpan ke variabel global
         document.getElementById('stat-total-file').innerText = files.length;
-        
         let totalSizeBytes = files.reduce((acc, f) => acc + f.size, 0);
-        let totalSizeKB = (totalSizeBytes / 1024).toFixed(1);
-        document.getElementById('stat-total-size').innerText = `${totalSizeKB} KB`;
+        document.getElementById('stat-total-size').innerText = `${(totalSizeBytes / 1024).toFixed(1)} KB`;
+        
+        renderFilesTable(); // Panggil fungsi gambar tabel
+    }
+}
 
-        const tbody = document.getElementById('table-files-body');
-        tbody.innerHTML = files.map(file => `
-            <tr class="border-b border-gray-100 hover:bg-gray-50 text-sm">
-                <td class="py-4 font-medium flex items-center space-x-2">
-                    <span class="text-red-500">📄</span> <span>${file.file_name}</span>
-                </td>
-                <td class="py-4 text-gray-500">${(file.size / 1024).toFixed(1)} KB</td>
-                <td class="py-4"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">${file.drives?.bucket_name || 'Unknown'}</span></td>
-                <td class="py-4 text-right">
-                    <button class="text-blue-600 hover:underline font-medium">Unduh</button>
-                </td>
-            </tr>
-        `).join('');
+// Fungsi menggambar tabel dengan Filter & Sort
+function renderFilesTable() {
+    const searchQuery = document.getElementById('search-file').value.toLowerCase();
+    const sortValue = document.getElementById('sort-file').value;
+
+    // 1. Filter Pencarian
+    let filteredFiles = globalFilesData.filter(file => file.file_name.toLowerCase().includes(searchQuery));
+
+    // 2. Filter Pengurutan
+    if (sortValue === 'terlama') filteredFiles.reverse(); // Karena bawaannya sudah terbaru
+    if (sortValue === 'terbesar') filteredFiles.sort((a, b) => b.size - a.size);
+    if (sortValue === 'terkecil') filteredFiles.sort((a, b) => a.size - b.size);
+    if (sortValue === 'az') filteredFiles.sort((a, b) => a.file_name.localeCompare(b.file_name));
+
+    // 3. Render ke HTML
+    const tbody = document.getElementById('table-files-body');
+    tbody.innerHTML = filteredFiles.map(file => `
+        <tr class="border-b border-gray-100 hover:bg-gray-50 text-sm">
+            <td class="py-4 font-medium flex items-center space-x-2">
+                <span class="text-gray-400">📄</span> <span class="truncate max-w-[200px]" title="${file.file_name}">${file.file_name}</span>
+            </td>
+            <td class="py-4 text-gray-500">${(file.size / 1024).toFixed(1)} KB</td>
+            <td class="py-4"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">${file.drives?.bucket_name || 'Unknown'}</span></td>
+            <td class="py-4 text-right space-x-3">
+                <button onclick="manageFile('${file.id}', 'share')" class="text-emerald-600 hover:text-emerald-800 font-medium transition">🔗 Share</button>
+                <button onclick="manageFile('${file.id}', 'delete')" class="text-red-500 hover:text-red-700 font-medium transition">🗑️ Hapus</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Event Listener agar setiap kali ngetik/milih opsi, tabel langsung berubah
+document.getElementById('search-file').addEventListener('input', renderFilesTable);
+document.getElementById('sort-file').addEventListener('change', renderFilesTable);
+
+// ==========================================
+// 12. FUNGSI SHARE DAN HAPUS FILE
+// ==========================================
+window.manageFile = async function(fileId, action) {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) return;
+
+    if (action === 'delete') {
+        const confirmDelete = confirm("Yakin ingin menghapus file ini permanen dari Google Drive?");
+        if (!confirmDelete) return;
+    }
+
+    // Tampilkan loading di tombol atau layar
+    const loadingOverlay = document.getElementById('loading-overlay');
+    loadingOverlay.classList.remove('hidden');
+
+    try {
+        // PENTING: Masukkan KODE PROYEK Anda
+        const URL_MANAGE = "https://dmagkklzsjfmuposfulb.supabase.co/functions/v1/manage-file";
+        
+        const response = await fetch(URL_MANAGE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: session.user.id, fileId: fileId, action: action })
+        });
+
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            if (action === 'delete') {
+                alert("🗑️ File berhasil dihapus!");
+                loadDashboardData(); // Refresh tabel
+            } else if (action === 'share') {
+                // Tampilkan link untuk di-copy
+                prompt("Link berhasil dibuat! Silakan copy link di bawah ini:", result.link);
+            }
+        } else {
+            alert("❌ Gagal: " + result.error);
+        }
+    } catch (error) {
+        alert("❌ Terjadi kesalahan jaringan.");
+    } finally {
+        loadingOverlay.classList.add('hidden');
     }
 }
 
