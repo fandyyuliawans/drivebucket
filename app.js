@@ -19,7 +19,13 @@ function showDashboard() { loginScreen.classList.add('hidden'); dashboardScreen.
 window.switchTab = function(tabName) {
     document.getElementById('my-drive-section').classList.toggle('hidden', tabName !== 'mydrive');
     document.getElementById('kelola-drive-section').classList.toggle('hidden', tabName !== 'kelola');
-    if (tabName === 'kelola') renderKelolaDriveUI();
+    
+    if (tabName === 'kelola') {
+        renderKelolaDriveUI();
+    } else if (tabName === 'mydrive') {
+        // KUNCI PERBAIKAN: Selalu tarik ulang data saat membuka Home
+        loadDashboardData(); 
+    }
 };
 
 // ==========================================
@@ -121,6 +127,37 @@ document.getElementById('input-upload').addEventListener('change', async (e) => 
 // ==========================================
 // 7. TARIK DATA & RENDER (VERSI MOBILE UI)
 // ==========================================
+let globalFilesData = [];
+
+// Fungsi 1: Menarik data dari Supabase
+async function loadDashboardData() {
+    try {
+        const { data: drives, error: errDrives } = await supabaseClient.from('drives').select('*');
+        const { data: files, error: errFiles } = await supabaseClient.from('files').select('*, drives(bucket_name)').order('created_at', { ascending: false });
+
+        if (drives) {
+            document.getElementById('stat-drive-aktif').innerText = drives.filter(d => d.status === 'Aktif').length;
+            let totalFreeBytes = drives.reduce((acc, d) => acc + (d.total_storage - d.used_storage), 0);
+            document.getElementById('stat-storage-bebas').innerText = `${(totalFreeBytes / (1024 ** 3)).toFixed(1)} GB`;
+        }
+
+        if (files) {
+            globalFilesData = files;
+            document.getElementById('stat-total-file').innerText = `${files.length} File`; 
+            
+            let totalSizeBytes = files.reduce((acc, f) => acc + f.size, 0);
+            let textKb = totalSizeBytes > 0 ? (totalSizeBytes / 1024).toFixed(1) : "0";
+            document.getElementById('stat-total-size').innerText = `${textKb} KB`;
+            
+            // Setelah data ditarik, panggil fungsi penggambar kartu
+            renderFilesTable(); 
+        }
+    } catch (error) {
+        console.error("Sistem gagal menarik data:", error);
+    }
+}
+
+// Fungsi 2: Menggambar kartu UI Mobile
 function renderFilesTable() {
     const searchEl = document.getElementById('search-file');
     const sortEl = document.getElementById('sort-file');
@@ -139,7 +176,6 @@ function renderFilesTable() {
     const tbody = document.getElementById('table-files-body');
     if (!tbody) return;
 
-    // KITA RENDER MENJADI KARTU ELEGAN GAYA SMARTPHONE
     tbody.innerHTML = filteredFiles.map(file => `
         <div class="bg-white p-4 rounded-2xl shadow-sm flex items-center justify-between border border-gray-100">
             
@@ -161,6 +197,14 @@ function renderFilesTable() {
         </div>
     `).join('');
 }
+
+// Fungsi 3: Pendeteksi ketikan di kolom pencarian
+document.addEventListener('DOMContentLoaded', () => {
+    const searchEl = document.getElementById('search-file');
+    const sortEl = document.getElementById('sort-file');
+    if (searchEl) searchEl.addEventListener('input', renderFilesTable);
+    if (sortEl) sortEl.addEventListener('change', renderFilesTable);
+});
 
 // ==========================================
 // 8. LOGIKA MANAJEMEN: DOWNLOAD, RENAME, SHARE, DELETE
