@@ -119,33 +119,12 @@ document.getElementById('input-upload').addEventListener('change', async (e) => 
 });
 
 // ==========================================
-// 7. TARIK DATA & RENDER TABEL (SEARCH/SORT)
+// 7. TARIK DATA & RENDER (VERSI MOBILE UI)
 // ==========================================
-let globalFilesData = [];
-
-async function loadDashboardData() {
-    const { data: drives } = await supabaseClient.from('drives').select('*');
-    const { data: files } = await supabaseClient.from('files').select('*, drives(bucket_name)').order('created_at', { ascending: false });
-
-    if (drives) {
-        document.getElementById('stat-drive-aktif').innerText = drives.filter(d => d.status === 'Aktif').length;
-        let totalFreeBytes = drives.reduce((acc, d) => acc + (d.total_storage - d.used_storage), 0);
-        document.getElementById('stat-storage-bebas').innerText = `${(totalFreeBytes / (1024 ** 3)).toFixed(1)} GB`;
-    }
-
-    if (files) {
-        globalFilesData = files;
-        document.getElementById('stat-total-file').innerText = files.length;
-        let totalSizeBytes = files.reduce((acc, f) => acc + f.size, 0);
-        document.getElementById('stat-total-size').innerText = `${(totalSizeBytes / 1024).toFixed(1)} KB`;
-        renderFilesTable(); 
-    }
-}
-
 function renderFilesTable() {
     const searchEl = document.getElementById('search-file');
     const sortEl = document.getElementById('sort-file');
-    if (!searchEl || !sortEl) return; // Mencegah error jika elemen belum muncul
+    if (!searchEl || !sortEl) return; 
 
     const searchQuery = searchEl.value.toLowerCase();
     const sortValue = sortEl.value;
@@ -160,30 +139,28 @@ function renderFilesTable() {
     const tbody = document.getElementById('table-files-body');
     if (!tbody) return;
 
+    // KITA RENDER MENJADI KARTU ELEGAN GAYA SMARTPHONE
     tbody.innerHTML = filteredFiles.map(file => `
-        <tr class="border-b border-gray-100 hover:bg-gray-50 text-sm">
-            <td class="py-4 font-medium flex items-center space-x-2">
-                <span class="text-gray-400">📄</span> <span class="truncate max-w-[180px]" title="${file.file_name}">${file.file_name}</span>
-            </td>
-            <td class="py-4 text-gray-500">${(file.size / 1024).toFixed(1)} KB</td>
-            <td class="py-4"><span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">${file.drives?.bucket_name || 'Unknown'}</span></td>
-            <td class="py-4 text-right space-x-2 md:space-x-3">
-                <button onclick="manageFile('${file.id}', 'download')" class="text-blue-600 hover:underline font-medium transition">⬇️ Unduh</button>
-                <button onclick="manageFile('${file.id}', 'rename')" class="text-amber-600 hover:underline font-medium transition">✏️ Rename</button>
-                <button onclick="manageFile('${file.id}', 'share')" class="text-emerald-600 hover:underline font-medium transition">🔗 Share</button>
-                <button onclick="manageFile('${file.id}', 'delete')" class="text-red-500 hover:underline font-medium transition">🗑️ Hapus</button>
-            </td>
-        </tr>
+        <div class="bg-white p-4 rounded-2xl shadow-sm flex items-center justify-between border border-gray-100">
+            
+            <div class="flex items-center space-x-3 overflow-hidden">
+                <div class="bg-blue-50 p-3 rounded-xl text-xl shrink-0">📄</div>
+                <div class="truncate">
+                    <h4 class="font-bold text-gray-800 text-sm truncate" title="${file.file_name}">${file.file_name}</h4>
+                    <p class="text-xs text-gray-400 mt-0.5">${(file.size / 1024).toFixed(1)} KB • ${file.drives?.bucket_name || 'Unknown'}</p>
+                </div>
+            </div>
+
+            <div class="flex space-x-1 shrink-0 ml-2">
+                <button onclick="manageFile('${file.id}', 'download')" class="text-blue-500 bg-blue-50 p-2 rounded-lg text-xs" title="Unduh">⬇️</button>
+                <button onclick="manageFile('${file.id}', 'rename')" class="text-amber-500 bg-amber-50 p-2 rounded-lg text-xs" title="Ubah Nama">✏️</button>
+                <button onclick="manageFile('${file.id}', 'share')" class="text-emerald-500 bg-emerald-50 p-2 rounded-lg text-xs" title="Share">🔗</button>
+                <button onclick="manageFile('${file.id}', 'delete')" class="text-red-500 bg-red-50 p-2 rounded-lg text-xs" title="Hapus">🗑️</button>
+            </div>
+            
+        </div>
     `).join('');
 }
-
-// Pasang pendeteksi ketikan untuk search & sort
-document.addEventListener('DOMContentLoaded', () => {
-    const searchEl = document.getElementById('search-file');
-    const sortEl = document.getElementById('sort-file');
-    if (searchEl) searchEl.addEventListener('input', renderFilesTable);
-    if (sortEl) sortEl.addEventListener('change', renderFilesTable);
-});
 
 // ==========================================
 // 8. LOGIKA MANAJEMEN: DOWNLOAD, RENAME, SHARE, DELETE
