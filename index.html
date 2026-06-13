@@ -3,122 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyDrive All - Cloud Storage Multi-Account</title>
+    <title>MyDrive All - Mobile Version</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Sembunyikan scrollbar agar lebih mirip aplikasi asli */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans">
+<body class="bg-gray-200 text-gray-800 font-sans">
 
-    <div id="login-screen" class="hidden min-h-screen flex items-center justify-center bg-blue-600">
-        <div class="bg-white p-8 rounded-xl shadow-lg max-w-sm w-full text-center">
-            <h1 class="text-2xl font-bold text-blue-600 mb-2">MyDrive All</h1>
-            <p class="text-gray-500 mb-6 text-sm">Masuk untuk mengelola penyimpanan.</p>
-            
-            <input type="email" id="admin-email" placeholder="Email Admin" class="w-full mb-3 p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
-            <input type="password" id="admin-password" placeholder="Password" class="w-full mb-4 p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
-            <button id="btn-login-admin" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2.5 px-4 rounded-lg transition mb-4">
-                Masuk sebagai Admin
-            </button>
-            
-            <div class="flex items-center my-4">
-                <div class="flex-grow border-t border-gray-200"></div>
-                <span class="flex-shrink-0 mx-4 text-gray-400 text-sm">ATAU</span>
-                <div class="flex-grow border-t border-gray-200"></div>
+    <div class="max-w-md mx-auto min-h-screen bg-gray-50 relative pb-20 shadow-2xl overflow-hidden flex flex-col">
+
+        <div id="login-screen" class="hidden absolute inset-0 z-40 bg-blue-600 flex flex-col items-center justify-center p-6 text-white text-center">
+            <div class="bg-white p-8 rounded-3xl shadow-xl w-full text-gray-800">
+                <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">☁️</div>
+                <h1 class="text-2xl font-bold text-blue-600 mb-1">MyDrive All</h1>
+                <p class="text-gray-400 mb-8 text-sm">Storage Manager App</p>
+                
+                <input type="email" id="admin-email" placeholder="Email Admin" class="w-full mb-3 p-4 bg-gray-50 border-none rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="password" id="admin-password" placeholder="Password" class="w-full mb-6 p-4 bg-gray-50 border-none rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                
+                <button id="btn-login-admin" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg mb-4 active:scale-95 transition">Masuk Admin</button>
+                <div class="flex items-center my-4 opacity-50"><div class="flex-grow border-t border-gray-300"></div><span class="mx-4 text-xs">ATAU</span><div class="flex-grow border-t border-gray-300"></div></div>
+                <button id="btn-login" class="w-full bg-white border border-gray-200 text-blue-600 font-bold py-4 rounded-xl active:bg-gray-50 transition">Login via Google</button>
             </div>
-
-            <button id="btn-login" class="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 font-semibold py-2.5 px-4 rounded-lg transition border border-blue-200">
-                Masuk dengan Google
-            </button>
         </div>
-    </div>
 
-    <div id="dashboard-screen" class="min-h-screen flex flex-col md:flex-row">
-        <aside class="w-full md:w-64 bg-white border-r border-gray-200 p-6 flex flex-col justify-between">
-            <div>
-                <div class="flex items-center space-x-2 mb-8">
-                    <div class="bg-blue-600 text-white p-2 rounded-lg font-bold text-xl">☁️</div>
-                    <span class="text-xl font-bold text-blue-600">MyDrive All</span>
-                </div>
-                <nav class="space-y-2">
-                    <button onclick="switchTab('mydrive')" class="w-full text-left hover:bg-gray-50 text-gray-700 font-medium py-2.5 px-4 rounded-lg flex items-center space-x-3 focus:bg-blue-50 focus:text-blue-600">
-                        <span>🏠</span> <span>My Drive</span>
-                    </button>
-                    <button onclick="switchTab('kelola')" class="w-full text-left text-gray-700 hover:bg-gray-50 font-medium py-2.5 px-4 rounded-lg flex items-center space-x-3 focus:bg-blue-50 focus:text-blue-600">
-                        <span>⚙️</span> <span>Kelola Drive</span>
-                    </button>
-                </nav>
-            </div>
-            <button id="btn-logout" class="text-left text-red-500 hover:bg-red-50 py-2.5 px-4 rounded-lg mt-auto flex items-center space-x-3">
-                <span>🚪</span> <span>Keluar</span>
-            </button>
-        </aside>
-
-        <main class="flex-1 p-6 md:p-10">
+        <div id="dashboard-screen" class="hidden flex-1 flex flex-col w-full h-full">
             
-            <div id="my-drive-section">
-                <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm"><span class="text-gray-400 text-sm block mb-1">Total File</span><span id="stat-total-file" class="text-2xl font-bold text-gray-800">0</span></div>
-                    <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm"><span class="text-gray-400 text-sm block mb-1">Total Ukuran</span><span id="stat-total-size" class="text-2xl font-bold text-gray-800">0 KB</span></div>
-                    <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm"><span class="text-gray-400 text-sm block mb-1">Drive Aktif</span><span id="stat-drive-aktif" class="text-2xl font-bold text-gray-800">0</span></div>
-                    <div class="bg-white p-5 rounded-xl border border-blue-100 shadow-sm bg-blue-50"><span class="text-blue-500 text-sm block mb-1">Storage Bebas</span><span id="stat-storage-bebas" class="text-2xl font-bold text-blue-600">0 GB</span></div>
-                </section>
-
-                <div class="flex space-x-4 mb-8">
-                    <label class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-sm cursor-pointer transition">
-                        ➕ Upload File Baru <input type="file" id="input-upload" class="hidden">
-                    </label>
-                    <button id="btn-tambah-storage" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-sm transition">
-                        🚀 + Tambah Storage (Google Account)
-                    </button>
-                </div>
-                <section class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                    
-                    <div class="flex flex-col md:flex-row justify-between items-center mb-4 space-y-3 md:space-y-0">
-                        <h2 class="text-lg font-bold text-gray-800">FILE TERBARU</h2>
-                        <div class="flex space-x-2 w-full md:w-auto">
-                            <input type="text" id="search-file" placeholder="🔍 Cari nama file..." class="w-full md:w-48 p-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
-                            <select id="sort-file" class="p-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
-                                <option value="terbaru">Terbaru</option>
-                                <option value="terlama">Terlama</option>
-                                <option value="terbesar">Terbesar</option>
-                                <option value="terkecil">Terkecil</option>
-                                <option value="az">A - Z</option>
-                            </select>
+            <div id="my-drive-section" class="flex-1 overflow-y-auto w-full">
+                <div class="bg-white rounded-b-[2.5rem] shadow-sm px-6 pt-8 pb-6 mb-4">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <p class="text-gray-400 text-sm">Selamat datang,</p>
+                            <h1 class="text-xl font-bold text-gray-800">My Storage</h1>
                         </div>
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-xl shadow-inner">👤</div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-blue-800 to-indigo-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden mb-6">
+                        <div class="absolute -right-6 -top-6 w-24 h-24 bg-white opacity-10 rounded-full"></div>
+                        
+                        <div class="flex justify-between items-center mb-6">
+                            <div class="bg-white/20 w-12 h-12 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-sm">☁️</div>
+                            <button id="btn-tambah-storage" class="bg-white text-blue-800 font-bold text-xs px-4 py-2 rounded-full shadow hover:bg-gray-100 transition active:scale-95">
+                                + Account
+                            </button>
+                        </div>
+                        <p class="text-indigo-200 text-xs mb-1">Available Cloud Storage</p>
+                        <h2 id="stat-storage-bebas" class="text-3xl font-bold mb-1">0 GB</h2>
+                        <p class="text-indigo-200 text-xs">Used <span id="stat-total-size" class="font-medium">0 KB</span> in <span id="stat-drive-aktif" class="font-medium">0</span> Drives</p>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="border-b border-gray-200 text-gray-400 text-sm">
-                                    <th class="pb-3 font-medium">Nama File</th>
-                                    <th class="pb-3 font-medium">Ukuran</th>
-                                    <th class="pb-3 font-medium">Bucket Storage</th>
-                                    <th class="pb-3 font-medium text-right">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="table-files-body">
-                                </tbody>
-                        </table>
-                    </div>
-
-                </section>
-            </div>
-
-            <div id="kelola-drive-section" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Kelola Drive Storage</h2>
+                    <label class="w-full bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-2xl p-4 flex items-center justify-between cursor-pointer transition active:scale-95">
+                        <div class="flex items-center space-x-4">
+                            <div class="bg-blue-600 w-10 h-10 rounded-xl flex items-center justify-center text-white">⬆️</div>
+                            <div>
+                                <h3 class="font-bold text-blue-900 text-sm">Upload File Baru</h3>
+                                <p class="text-xs text-blue-500">Simpan ke Google Drive</p>
+                            </div>
+                        </div>
+                        <span class="text-blue-600 font-bold bg-white px-3 py-1 rounded-lg text-xs" id="stat-total-file">0 File</span>
+                        <input type="file" id="input-upload" class="hidden">
+                    </label>
                 </div>
-                <div id="grid-kelola-drives" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <div class="px-6 pb-6">
+                    <h2 class="text-lg font-bold text-gray-800 mb-3">Recent Files</h2>
+                    <div class="flex space-x-2 mb-4">
+                        <input type="text" id="search-file" placeholder="🔍 Cari..." class="w-full p-3 bg-white text-sm border-none shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100">
+                        <select id="sort-file" class="p-3 bg-white text-sm border-none shadow-sm rounded-xl focus:outline-none">
+                            <option value="terbaru">Terbaru</option>
+                            <option value="terbesar">Terbesar</option>
+                            <option value="az">A-Z</option>
+                        </select>
                     </div>
+                    
+                    <div id="table-files-body" class="space-y-3">
+                        </div>
+                </div>
             </div>
 
-        </main>
-    </div>
-    <div id="loading-overlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex flex-col items-center justify-center transition-opacity">
-        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
-        <h2 class="text-xl font-bold text-white mb-2">Mengunggah File...</h2>
-        <p class="text-blue-200 text-sm">Mohon jangan tutup halaman ini.</p>
+            <div id="kelola-drive-section" class="hidden flex-1 overflow-y-auto w-full px-6 pt-8 pb-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Kelola Drive</h2>
+                <div id="grid-kelola-drives" class="flex flex-col space-y-4">
+                    </div>
+                <button id="btn-logout" class="mt-8 w-full bg-red-50 text-red-500 font-bold py-4 rounded-xl border border-red-100 active:bg-red-100 transition">
+                    🚪 Keluar Akun
+                </button>
+            </div>
+            
+            <div class="fixed bottom-0 w-full max-w-md bg-white flex justify-around py-3 px-2 z-30 rounded-t-3xl shadow-[0_-5px_15px_-10px_rgba(0,0,0,0.1)]">
+                <button onclick="switchTab('mydrive')" class="flex flex-col items-center p-2 text-blue-600 focus:outline-none">
+                    <span class="text-2xl mb-1 drop-shadow-sm">🏠</span>
+                    <span class="text-[10px] font-bold">Home</span>
+                </button>
+                <button onclick="switchTab('kelola')" class="flex flex-col items-center p-2 text-gray-400 hover:text-blue-500 focus:text-blue-600 focus:outline-none">
+                    <span class="text-2xl mb-1 drop-shadow-sm">⚙️</span>
+                    <span class="text-[10px] font-bold">Settings</span>
+                </button>
+            </div>
+
+        </div>
+
+        <div id="loading-overlay" class="hidden fixed inset-0 z-50 bg-slate-900 bg-opacity-80 flex flex-col items-center justify-center max-w-md mx-auto">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-white mb-4"></div>
+            <h2 class="text-xl font-bold text-white mb-1">Memproses...</h2>
+            <p class="text-gray-300 text-sm">Mohon jangan tutup layar.</p>
+        </div>
+
     </div>
 
     <script src="app.js"></script>
