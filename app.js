@@ -64,7 +64,7 @@ document.getElementById('btn-tambah-storage').addEventListener('click', async ()
         if (!session) return alert("Sesi habis, silakan login ulang!");
 
         // PENTING: Ganti dengan Client ID Google dan ID Supabase Anda!
-        const GOOGLE_CLIENT_ID = "MASUKKAN_CLIENT_ID_GOOGLE_ANDA_DI_SINI"; 
+        const GOOGLE_CLIENT_ID = "800639483878-9nm9324qto7cf1d4ceqockodcl9h30af.apps.googleusercontent.com"; 
         const REDIRECT_URI = "https://dmagkklzsjfmuposfulb.supabase.co/functions/v1/google-auth-callback";
         
         const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=https://www.googleapis.com/auth/drive.file%20email&access_type=offline&state=${session.user.id}&prompt=consent`;
